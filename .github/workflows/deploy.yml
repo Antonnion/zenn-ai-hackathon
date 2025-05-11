@@ -7,7 +7,7 @@ on:
       - dev
 
 env:
-  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  PROJECT_ID: ca-zenn-hackathon
   REGION: asia-northeast1
   REPOSITORY: line-run-dev
 
@@ -17,7 +17,6 @@ jobs:
     permissions:
       contents: read
       id-token: write
-
     steps:
     - name: Checkout
       uses: actions/checkout@v3
