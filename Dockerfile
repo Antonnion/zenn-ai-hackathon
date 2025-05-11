@@ -7,7 +7,6 @@ WORKDIR /app
 # 必要なファイルをコピー
 COPY requirements.txt .
 COPY app.py .
-COPY .env .
 
 # 依存関係のインストール
 RUN pip install --no-cache-dir -r requirements.txt
