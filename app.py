@@ -19,7 +19,7 @@ handler = WebhookHandler(os.getenv('LINE_CHANNEL_SECRET'))
 async def root():
     return {"status": "ok"}
 
-@app.post("/webhook")
+@app.post("/callback", methods=["POST"])
 async def callback(request: Request):
     # リクエストヘッダーからX-Line-Signatureを取得
     signature = request.headers.get('X-Line-Signature', '')

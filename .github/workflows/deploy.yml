@@ -66,4 +66,4 @@ jobs:
         env_vars: |
           LINE_CHANNEL_ACCESS_TOKEN=${{ env.LINE_CHANNEL_ACCESS_TOKEN }}
           LINE_CHANNEL_SECRET=${{ env.LINE_CHANNEL_SECRET }}
-        flags: '--allow-unauthenticated --platform managed --port 8080'
+        flags: '--allow-unauthenticated --platform managed --port 8080 --min-instances 1 --ingress all --cpu 1 --memory 512Mi --timeout 300s --concurrency 80 --cpu-throttling --execution-environment gen2'
