@@ -1,6 +1,5 @@
 name: Build and Deploy to Cloud Run
 
-
 on:
   push:
     branches:
@@ -8,7 +7,7 @@ on:
       - dev
 
 env:
-  PROJECT_ID: ca-zenn-hackathon
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   REGION: asia-northeast1
   REPOSITORY: line-run-dev
 
@@ -18,17 +17,19 @@ jobs:
     permissions:
       contents: read
       id-token: write
+
     steps:
     - name: Checkout
       uses: actions/checkout@v3
 
     - id: 'auth'
       name: 'Authenticate to Google Cloud'
-      uses: 'google-github-actions/auth@v2'
+      uses: 'google-github-actions/auth@v1'
       with:
         project_id: ${{ env.PROJECT_ID }}
         workload_identity_provider: 'projects/999052919638/locations/global/workloadIdentityPools/zenn/providers/github'
         service_account: 'sa-github-zenn@ca-zenn-hackathon.iam.gserviceaccount.com'
+
     - name: 'Set up Cloud SDK'
       uses: 'google-github-actions/setup-gcloud@v1'
       with:
@@ -41,6 +42,12 @@ jobs:
         else
           echo "SERVICE_NAME=line-bot-dev" >> $GITHUB_ENV
         fi
+
+    - name: Get secrets from Secret Manager
+      id: secrets
+      run: |
+        echo "LINE_CHANNEL_ACCESS_TOKEN=$(gcloud secrets versions access latest --secret=LINE_CHANNEL_ACCESS_TOKEN)" >> $GITHUB_ENV
+        echo "LINE_CHANNEL_SECRET=$(gcloud secrets versions access latest --secret=LINE_CHANNEL_SECRET)" >> $GITHUB_ENV
 
     - name: Authorize Docker push
       run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
@@ -57,5 +64,5 @@ jobs:
         region: ${{ env.REGION }}
         image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
         env_vars: |
-          LINE_CHANNEL_ACCESS_TOKEN=${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
-          LINE_CHANNEL_SECRET=${{ secrets.LINE_CHANNEL_SECRET }} 
+          LINE_CHANNEL_ACCESS_TOKEN=${{ env.LINE_CHANNEL_ACCESS_TOKEN }}
+          LINE_CHANNEL_SECRET=${{ env.LINE_CHANNEL_SECRET }}
