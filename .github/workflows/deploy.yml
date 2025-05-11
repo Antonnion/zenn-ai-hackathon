@@ -28,7 +28,6 @@ jobs:
       with:
         project_id: ${{ env.PROJECT_ID }}
         workload_identity_provider: 'projects/999052919638/locations/global/workloadIdentityPools/zenn/providers/github'
-        service_account: 'sa-github-zenn@ca-zenn-hackathon.iam.gserviceaccount.com'
 
     - name: 'Set up Cloud SDK'
       uses: 'google-github-actions/setup-gcloud@v1'
