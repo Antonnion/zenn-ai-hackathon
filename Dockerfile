@@ -11,8 +11,8 @@ COPY app.py .
 # 依存関係のインストール
 RUN pip install --no-cache-dir -r requirements.txt
 
-# ポート3000を公開
-EXPOSE 3000
+# ポート8080を公開
+EXPOSE 8080
 
 # アプリケーションの起動（uvicornを使用）
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "3000"] 
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8080"] 
