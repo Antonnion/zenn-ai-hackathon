@@ -66,4 +66,4 @@ jobs:
         env_vars: |
           LINE_CHANNEL_ACCESS_TOKEN=${{ env.LINE_CHANNEL_ACCESS_TOKEN }}
           LINE_CHANNEL_SECRET=${{ env.LINE_CHANNEL_SECRET }}
-        flags: '--allow-unauthenticated --platform managed --min-instances 1 --port 3000'
+        flags: '--allow-unauthenticated --platform managed'
