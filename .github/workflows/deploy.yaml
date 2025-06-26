@@ -1,0 +1,83 @@
+name: Build and Deploy to Cloud Run
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    env:
+      PROJECT_ID: ${{ secrets.PROJECT_ID }}
+      REGION: ${{ vars.REGION }}
+      ARTIFACT_REPO: ${{ vars.ARTIFACT_REPO }}
+      ARTIFACT_REGION: ${{ vars.ARTIFACT_REGION }}
+      GEMINI_DEFAULT_MODEL: ${{ vars.GEMINI_DEFAULT_MODEL }}
+      GEMINI_SEARCH_MODEL: ${{ vars.GEMINI_SEARCH_MODEL }}
+      SERVICE_NAME: ${{ vars.SERVICE_NAME }}
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - id: "auth"
+        name: "Authenticate to Google Cloud"
+        uses: "google-github-actions/auth@v1"
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+          workload_identity_provider: "${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}"
+          service_account: "${{ secrets.WORKLOAD_IDENTITY_SERVICE_ACCOUNT }}"
+
+      - name: "Set up Cloud SDK"
+        uses: "google-github-actions/setup-gcloud@v1"
+        with:
+          version: ">= 379.0.0"
+
+      - name: Set environment for develop
+        if: github.ref == 'refs/heads/develop'
+        run: |
+          echo "SERVICE=${{ env.SERVICE_NAME }}-dev" >> $GITHUB_ENV
+          echo "SECRETS_KEY=LINE_CHANNEL_ACCESS_TOKEN=line-channel-access-token-dev:latest,LINE_CHANNEL_SECRET=line-channel-secret-dev:latest,YOUTUBE_API_KEY=youtube-api-key:latest" >> $GITHUB_ENV
+
+      - name: Set environment for main
+        if: github.ref == 'refs/heads/main'
+        run: |
+          echo "SERVICE=${{ env.SERVICE_NAME }}-prd" >> $GITHUB_ENV
+          echo "SECRETS_KEY=LINE_CHANNEL_ACCESS_TOKEN=line-channel-access-token-prd:latest,LINE_CHANNEL_SECRET=line-channel-secret-prd:latest,YOUTUBE_API_KEY=youtube-api-key:latest" >> $GITHUB_ENV
+
+      - name: Get secrets from Secret Manager
+        id: secrets
+        run: |
+          echo "LINE_CHANNEL_ACCESS_TOKEN=$(gcloud secrets versions access latest --secret=LINE_CHANNEL_ACCESS_TOKEN)" >> $GITHUB_ENV
+          echo "LINE_CHANNEL_SECRET=$(gcloud secrets versions access latest --secret=LINE_CHANNEL_SECRET)" >> $GITHUB_ENV
+          echo "YOUTUBE_API_KEY=$(gcloud secrets versions access latest --secret=YOUTUBE_API_KEY)" >> $GITHUB_ENV
+
+      - name: Authorize Docker push
+        run: |
+          gcloud auth configure-docker ${{ env.ARTIFACT_REGION }}-docker.pkg.dev
+
+      - name: Build and Push Container
+        run: |
+          docker build -t ${{ env.ARTIFACT_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/$SERVICE_NAME:${{ github.sha }} .
+          docker push ${{ env.ARTIFACT_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/$SERVICE_NAME:${{ github.sha }}
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy $SERVICE \
+            --image=${{ env.ARTIFACT_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/$SERVICE_NAME:${{ github.sha }} \
+            --region=${{ env.REGION }} \
+            --platform=managed \
+            --allow-unauthenticated \
+            --port=8080 \
+            --min-instances 0 \
+            --max-instances 3 \ 
+            --cpu 1 \
+            --memory 1GiB \
+            --timeout=500 \
+            --set-secrets=$SECRETS_KEY \
+            --set-env-vars=GOOGLE_CLOUD_PROJECT=${{ env.PROJECT_ID }},GOOGLE_GENAI_USE_VERTEXAI=True,GOOGLE_CLOUD_LOCATION=${{env.REGION}},GEMINI_DEFAULT_MODEL=${{ env.GEMINI_DEFAULT_MODEL }},GEMINI_SEARCH_MODEL=${{ env.GEMINI_SEARCH_MODEL }}

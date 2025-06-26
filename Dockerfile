@@ -1,18 +1,20 @@
-# Python 3.9をベースイメージとして使用
-FROM python:3.9-slim
-
-# 作業ディレクトリを設定
+FROM python:3.13-slim
 WORKDIR /app
 
-# 必要なファイルをコピー
+# Node.jsとnpmのインストール
+RUN apt-get update && apt-get install -y \
+    curl \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY requirements.txt .
-COPY app.py .
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
-# 依存関係のインストール
-RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
 
-# ポート8080を公開
-EXPOSE 8080
+ENV PORT=8000
 
-# アプリケーションの起動（uvicornを使用）
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8080"] 
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port $PORT"]

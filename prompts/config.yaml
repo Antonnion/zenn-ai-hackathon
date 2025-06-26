@@ -1,0 +1,116 @@
+version: 1.0.0
+description: "プロンプト管理システム設定ファイル（修正版）"
+default_lang: "ja"
+
+# グローバル変数（全てのプロンプトで使用可能）
+global_variables:
+  # レシピ関連
+  error_prevention: "missing required parametersエラーを防ぐため、内部で専用ツールを使用"
+  required_fields: "名前、材料、手順"
+
+  # モデル設定
+  default_model: "gemini-2.5-flash"
+  search_model: "gemini-2.0-flash"
+
+# エージェント設定
+agents:
+  root:
+    name: "root_agent"
+    description: "ユーザーと対話する中心的なエージェント"
+    version: "1.0.0"
+    model: "gemini-2.5-flash"
+    variables:
+      agent_name: "ルートエージェント"
+      agent_description: "ユーザーと対話する中心的なエージェント。ユーザーの意図を理解し、適切なサブエージェントに委譲するか、自分の持つツールを使用して直接対応すること"
+      basic_principles: |
+        - ユーザーの質問や指示を慎重に分析してください
+        - 画像が含まれている場合は、画像の内容も考慮して適切な処理を決定してください
+        - 要求に最も適したツールまたはサブエージェントを選択してください
+        - 明確で簡潔な応答を提供してください
+        - 分からないことがあれば正直に認めてください
+      request_examples: |
+        - 一般的な情報検索
+    prompts:
+      - system: "core/system.txt"
+      - main: "agents/root/main.txt"
+      - error_handling: "core/error_handling.txt"
+      - formatting: "core/formatting.txt"
+
+  recipe_manager:
+    name: "recipe_manager_agent"
+    description: "レシピを検索するエージェント"
+    version: "1.0.0"
+    model: "gemini-2.5-flash"
+    variables:
+      agent_name: "レシピ検索の統括エージェント"
+      agent_description: "ユーザーからの質問を適切なレシピ検索サブエージェントに渡すエージェント"
+    prompts:
+      - main: "agents/recipe_manager/main.txt"
+
+  youtube_search:
+    name: "youtube_search_agent"
+    description: "YouTubeで料理のレシピ動画を検索するエージェント"
+    version: "1.0.0"
+    model: "gemini-2.0-flash"
+    variables:
+      agent_name: "YouTube検索エージェント"
+      agent_description: "YouTubeで料理のレシピ動画を検索するエージェント"
+      video_duration: "10分以内"
+      min_views: "1000回以上"
+      search_keywords: "レシピ 作り方 料理 時短"
+      preferred_channels: "料理チャンネル、クッキングチャンネル"
+    prompts:
+      - main: "agents/youtube_search/main.txt"
+
+  google_search:
+    name: "google_search_agent"
+    description: "Googleで料理のレシピ情報を検索するエージェント"
+    version: "1.0.0"
+    model: "gemini-2.0-flash"
+    variables:
+      agent_name: "Google検索エージェント"
+      agent_description: "Googleで料理のレシピ情報を検索するエージェント"
+    prompts:
+      - main: "agents/google_search/main.txt"
+
+  image_analysis_manager:
+    name: "image_analysis_agent"
+    description: "画像から食材情報を抽出するエージェント"
+    version: "1.0.0"
+    model: "gemini-2.5-flash"
+    variables:
+      agent_name: "画像解析エージェント"
+    prompts:
+      - main: "agents/image_analysis/main.txt"
+
+  response_manager:
+    name: "response_manager_agent"
+    description: "ユーザーのリクエストを適切なサブエージェントに渡すエージェント"
+    version: "1.0.0"
+    model: "gemini-2.5-flash"
+    variables:
+      agent_name: "応答管理エージェント"
+      agent_description: "ユーザーのリクエストを適切なサブエージェントに渡すエージェント"
+    prompts:
+      - main: "agents/response_manager/main.txt"
+
+    line_response:
+      name: "line_response_agent"
+      description: "LINEでユーザーに応答するエージェント"
+      version: "1.0.0"
+      model: "gemini-2.5-flash"
+      variables:
+        agent_name: "LINE応答エージェント"
+      prompts:
+        - main: "agents/line_response_agent/main.txt"
+
+prompts:
+  # エージェント用プロンプト
+  root: "agents/root/main.txt"
+  recipe_manager: "agents/recipe_manager/main.txt"
+  response_manager: "agents/response_manager/main.txt"
+  youtube_search: "agents/sub_youtube_search/main.txt"
+  google_search: "agents/sub_google_search/main.txt"
+  flex_response: "agents/sub_flex_response/main.txt"
+  error_handling: "core/error_handling.txt"
+  image_analysis_manager: "agents/image_analysis/main.txt"
