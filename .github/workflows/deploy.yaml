@@ -11,9 +11,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PROJECT_ID: ${{ secrets.PROJECT_ID }}
-      REGION: zenn-hackathon
-      ARTIFACT_REPO: asia-northeast1
-      ARTIFACT_REGION: gemini-2.5-flash
+      REGION: us-central1
+      ARTIFACT_REPO: zenn-hackathon
+      ARTIFACT_REGION: asia-northeast1
       GEMINI_DEFAULT_MODEL: gemini-2.5-flash
       GEMINI_SEARCH_MODEL: gemini-2.0-flash
       SERVICE_NAME: line-receipt-bot
