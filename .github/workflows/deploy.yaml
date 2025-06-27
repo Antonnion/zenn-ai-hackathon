@@ -11,12 +11,12 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PROJECT_ID: ${{ secrets.PROJECT_ID }}
-      REGION: ${{ vars.REGION }}
-      ARTIFACT_REPO: ${{ vars.ARTIFACT_REPO }}
-      ARTIFACT_REGION: ${{ vars.ARTIFACT_REGION }}
-      GEMINI_DEFAULT_MODEL: ${{ vars.GEMINI_DEFAULT_MODEL }}
-      GEMINI_SEARCH_MODEL: ${{ vars.GEMINI_SEARCH_MODEL }}
-      SERVICE_NAME: ${{ vars.SERVICE_NAME }}
+      REGION: zenn-hackathon
+      ARTIFACT_REPO: asia-northeast1
+      ARTIFACT_REGION: gemini-2.5-flash
+      GEMINI_DEFAULT_MODEL: gemini-2.5-flash
+      GEMINI_SEARCH_MODEL: gemini-2.0-flash
+      SERVICE_NAME: line-receipt-bot
     permissions:
       contents: read
       id-token: write
