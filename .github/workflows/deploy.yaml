@@ -25,18 +25,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - id: "auth"
-        name: "Authenticate to Google Cloud"
-        uses: "google-github-actions/auth@v1"
+      - id: 'auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v1'
         with:
           project_id: ${{ env.PROJECT_ID }}
-          workload_identity_provider: "${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}"
-          service_account: "${{ secrets.WORKLOAD_IDENTITY_SERVICE_ACCOUNT }}"
+          workload_identity_provider: '${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}'
+          service_account: '${{ secrets.WORKLOAD_IDENTITY_SERVICE_ACCOUNT }}'
 
-      - name: "Set up Cloud SDK"
-        uses: "google-github-actions/setup-gcloud@v1"
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v1'
         with:
-          version: ">= 379.0.0"
+          version: '>= 379.0.0'
 
       - name: Set environment for develop
         if: github.ref == 'refs/heads/develop'
@@ -63,13 +63,13 @@ jobs:
 
       - name: Build and Push Container
         run: |
-          docker build -t ${{ env.ARTIFACT_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/$SERVICE_NAME:${{ github.sha }} .
-          docker push ${{ env.ARTIFACT_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/$SERVICE_NAME:${{ github.sha }}
+          docker build -t ${{ env.ARTIFACT_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/$SERVICE:${{ github.sha }} .
+          docker push ${{ env.ARTIFACT_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/$SERVICE:${{ github.sha }}
 
       - name: Deploy to Cloud Run
         run: |
           gcloud run deploy $SERVICE \
-            --image=${{ env.ARTIFACT_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/$SERVICE_NAME:${{ github.sha }} \
+            --image=${{ env.ARTIFACT_REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/$SERVICE:${{ github.sha }} \
             --region=${{ env.REGION }} \
             --platform=managed \
             --allow-unauthenticated \
