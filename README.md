@@ -24,83 +24,6 @@
 - Google での情報検索による信頼性の高いレシピ情報提供
 - LINE 経由でのレスポンス送信
 
-## ディレクトリ構成
-
-```
-main.py                         # FastAPIエントリポイント・メインアプリケーション
-requirements.txt                # 依存パッケージ
-Dockerfile                      # Dockerイメージビルド用
-
-.github/                        # GitHub関連ファイル
-  workflows/                    # GitHub Actions ワークフロー
-    deploy.yaml                 # Cloud Runへの自動デプロイ設定
-
-agents/                         # エージェント関連モジュール
-  __init__.py
-  agent_manager.py              # エージェント管理クラス
-  config.py                     # エージェント設定
-  prompt_manager.py             # プロンプト管理
-  root_agent.py                 # ルートエージェント
-
-prompts/                        # プロンプトテンプレート
-  __init__.py
-  config.yaml                   # プロンプト設定ファイル
-  agents/                       # 各エージェント用プロンプト
-    google_search/              # Google検索エージェント用
-      main.txt                  # メインプロンプト
-    image_analysis_manager/     # 画像分析エージェント用
-      main.txt
-    line_response_agent/        # LINE応答エージェント用
-      main.txt
-    recipe_manager/             # レシピ管理エージェント用
-      main.txt
-    registration/               # 登録エージェント用
-      main.txt
-    response_manager/           # レスポンス管理エージェント用
-      main.txt
-    root/                       # ルートエージェント用
-      main.txt
-    youtube_search/             # YouTube検索エージェント用
-      main.txt
-  core/                         # コアプロンプト
-    erorr_handling.txt          # エラー処理用プロンプト
-    formatting.txt              # フォーマット用プロンプト
-    system.txt                  # システムプロンプト
-  templates/                    # プロンプトテンプレート
-    agent_base.txt              # エージェント基本テンプレート
-
-services/                       # サービスモジュール
-  __init__.py
-  agent_service_impl.py         # エージェントサービス実装
-  agent_service/                # エージェントサービス
-    __init__.py
-    constants.py                # 定数定義
-    executor.py                 # 実行機能
-    message_handler.py          # メッセージ処理
-    responce_processor.py       # レスポンス処理
-    session_manager.py          # セッション管理
-  line_service/                 # LINEサービス
-    __init__.py
-    client.py                   # LINEクライアント
-    constants.py                # LINE関連定数
-    handler.py                  # LINEイベントハンドラ
-
-tools/                          # ツール群
-  __init__.py
-  db_regisration.py             # データベース登録機能
-  send_line_message.py          # LINE送信機能
-  youtube_tools.py              # YouTube検索機能
-  reccomend/                    # おすすめ機能
-    __init__.py
-  recipes/                      # レシピ関連ツール
-    __init__.py
-
-utils/                          # ユーティリティ
-  __init__.py
-  file_utils.py                 # ファイル操作ユーティリティ
-  logging.py                    # ロギング機能
-```
-
 ## システム構成図
 
 <img src="ハッカソン.drawio.svg" alt="システム構成図" width="700"/>
@@ -142,17 +65,124 @@ sequenceDiagram
     LINEプラットフォーム->>ユーザー: レシピ または 画像分析結果 または 一時的な回答
 ```
 
-## セットアップ手順
+## システムアーキテクチャ詳細
 
-1. Python 3.13 仮想環境の作成・有効化
+### コンポーネント間の連携
 
-```bash
-python3.13 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
+```mermaid
+graph TD
+    A[LINE Platform] -->|Webhook Events| B[FastAPI App]
+    B -->|Session| C[Agent Service]
+    C -->|Task| D[Root Agent]
+    D -->|Delegation| E[Recipe Manager]
+    D -->|Image Analysis| F[Image Analysis Manager]
+    D -->|Response Generation| G[Response Manager]
+    E -->|YouTube Search| H[YouTube Search Agent]
+    E -->|Google Search| I[Google Search Agent]
+    G -->|Format Response| K[LINE Response Agent]
+    H -->|Youtube Search| N[YouTube API]
+    I -->|Google Search| J[Google]
+    K -->|Send Message| L[LINE Messaging API]
+    L -->|Display| M[User's LINE App]
 ```
 
-2. 環境変数・設定
+### データフロー
+
+1. ユーザーが LINE アプリからメッセージを送信
+2. LINE プラットフォームから Webhook イベントが FastAPI アプリに届く
+3. FastAPI アプリはイベントを Agent Service に転送
+4. Agent Service はセッションを作成し、Root エージェントにタスクを委任
+5. Root エージェントはメッセージ内容を分析し、適切なサブエージェントに処理を振り分け
+   - テキストメッセージ → Recipe Manager
+   - 画像メッセージ → Image Analysis Manager
+6. 各サブエージェントは専用ツールを使用して情報収集
+7. Response Manager が最終的な応答を整形
+8. LINE Messaging API を通じてユーザーに応答を送信
+
+### モデルアーキテクチャ
+
+このプロジェクトでは、Google Vertex AI 上の Gemini モデルファミリーを活用しています：
+
+- **基本モデル**: `gemini-2.5-flash`
+
+  - Root Agent と主要なエージェントに使用
+  - 高品質なレシピ生成と食材理解に優れた性能
+
+- **検索モデル**: `gemini-2.0-flash`
+  - 検索や軽量処理向け
+  - レスポンスタイムを最適化
+
+## ディレクトリ構成
+
+```
+main.py                         # FastAPIエントリポイント・メインアプリケーション
+requirements.txt                # 依存パッケージ
+Dockerfile                      # Dockerイメージビルド用
+.github/                        # GitHub関連ファイル
+  workflows/                    # GitHub Actions ワークフロー
+    deploy.yaml                 # Cloud Runへの自動デプロイ設定
+agents/                         # エージェント関連モジュール
+  __init__.py
+  agent_manager.py              # エージェント管理クラス
+  config.py                     # エージェント設定
+  prompt_manager.py             # プロンプト管理
+  root_agent.py                 # ルートエージェント
+prompts/                        # プロンプトテンプレート
+  __init__.py
+  config.yaml                   # プロンプト設定ファイル
+  agents/                       # 各エージェント用プロンプト
+    google_search/              # Google検索エージェント用
+      main.txt                  # メインプロンプト
+    image_analysis_manager/     # 画像分析エージェント用
+      main.txt
+    line_response_agent/        # LINE応答エージェント用
+      main.txt
+    recipe_manager/             # レシピ管理エージェント用
+      main.txt
+    registration/               # 登録エージェント用
+      main.txt
+    response_manager/           # レスポンス管理エージェント用
+      main.txt
+    root/                       # ルートエージェント用
+      main.txt
+    youtube_search/             # YouTube検索エージェント用
+      main.txt
+  core/                         # コアプロンプト
+    erorr_handling.txt          # エラー処理用プロンプト
+    formatting.txt              # フォーマット用プロンプト
+    system.txt                  # システムプロンプト
+  templates/                    # プロンプトテンプレート
+    agent_base.txt              # エージェント基本テンプレート
+services/                       # サービスモジュール
+  __init__.py
+  agent_service_impl.py         # エージェントサービス実装
+  agent_service/                # エージェントサービス
+    __init__.py
+    constants.py                # 定数定義
+    executor.py                 # 実行機能
+    message_handler.py          # メッセージ処理
+    responce_processor.py       # レスポンス処理
+    session_manager.py          # セッション管理
+  line_service/                 # LINEサービス
+    __init__.py
+    client.py                   # LINEクライアント
+    constants.py                # LINE関連定数
+    handler.py                  # LINEイベントハンドラ
+tools/                          # ツール群
+  __init__.py
+  db_regisration.py             # データベース登録機能
+  send_line_message.py          # LINE送信機能
+  youtube_tools.py              # YouTube検索機能
+  reccomend/                    # おすすめ機能
+    __init__.py
+  recipes/                      # レシピ関連ツール
+    __init__.py
+
+utils/                          # ユーティリティ
+  __init__.py
+  file_utils.py                 # ファイル操作ユーティリティ
+  logging.py                    # ロギング機能
+```
 
 ## 開発環境のセットアップ詳細
 
@@ -208,7 +238,7 @@ pip install -r requirements.txt
 | `DB_NAME`                     | -    | 接続先のデータベース名。                                        |
 | `DB_INSTANCE_CONNECTION_NAME` | -    | Cloud SQL 接続名。形式: `[PROJECT_ID]:[REGION]:[INSTANCE_NAME]` |
 
-### ステップバイステップ・セットアップ
+## セットアップ手順（ローカル）
 
 1. リポジトリのクローン
 
@@ -220,7 +250,7 @@ cd zenn-ai-hackathon
 2. 仮想環境のセットアップ
 
 ```bash
-python3 -m venv venv
+python3.13 -m venv venv
 source venv/bin/activate  # Linuxの場合
 .\venv\Scripts\activate   # Windowsの場合
 ```
@@ -244,88 +274,73 @@ cp .env.example .env
 uvicorn main:app --reload --port 8080
 ```
 
-## システムアーキテクチャ詳細
+## シナリオと表示例
 
-### コンポーネント間の連携
+### シナリオ 1: テキストからのレシピ提案
 
-```mermaid
-graph TD
-    A[LINE Platform] -->|Webhook Events| B[FastAPI App]
-    B -->|Session| C[Agent Service]
-    C -->|Task| D[Root Agent]
-    D -->|Delegation| E[Recipe Manager]
-    D -->|Image Analysis| F[Image Analysis Manager]
-    D -->|Response Generation| G[Response Manager]
-    E -->|YouTube Search| H[YouTube Search Agent]
-    E -->|Google Search| I[Google Search Agent]
-    G -->|Format Response| K[LINE Response Agent]
-    H -->|Youtube Search| N[YouTube API]
-    I -->|Google Search| J[Google]
-    K -->|Send Message| L[LINE Messaging API]
-    L -->|Display| M[User's LINE App]
-```
+<table>
+<tr>
+<td width="60%">
 
-### データフロー
+1. ユーザー入力：「キーマーカレーのレシピを教えて」
+2. ボットの応答：
 
-1. ユーザーが LINE アプリからメッセージを送信
-2. LINE プラットフォームから Webhook イベントが FastAPI アプリに届く
-3. FastAPI アプリはイベントを Agent Service に転送
-4. Agent Service はセッションを作成し、Root エージェントにタスクを委任
-5. Root エージェントはメッセージ内容を分析し、適切なサブエージェントに処理を振り分け
-   - テキストメッセージ → Recipe Manager
-   - 画像メッセージ → Image Analysis Manager
-6. 各サブエージェントは専用ツールを使用して情報収集
-7. Response Manager が最終的な応答を整形
-8. LINE Messaging API を通じてユーザーに応答を送信
+- 詳細なレシピ（材料・手順）
+- YouTube 関連動画リンク
+- アレンジ・ヘルシー化のヒント
 
-### モデルアーキテクチャ
+</td>
+<td width="40%">
+<img src="docs/images/demo1.jpeg" alt="レシピ提案例" width="200"/>
+</td>
+</tr>
+</table>
 
-このプロジェクトでは、Google Vertex AI 上の Gemini モデルファミリーを活用しています：
+### シナリオ 2: 食材画像からのレシピ提案
 
-- **基本モデル**: `gemini-2.5-flash`
+<table>
+<tr>
+<td width="60%">
 
-  - Root Agent と主要なエージェントに使用
-  - 高品質なレシピ生成と食材理解に優れた性能
+1. ユーザーが食材の写真を送信
+2. ボットが画像を分析：
 
-- **検索モデル**: `gemini-2.0-flash`
-  - 検索や軽量処理向け
-  - レスポンスタイムを最適化
+- 食材の自動認識・リスト化
 
-## 実行例とデモ
+3. レシピ提案（リクエスト時）：
 
-### ユースケースシナリオ
+- 材料と作り方
+- 関連動画リンク
 
-#### シナリオ 1: テキスト入力からのレシピ提案
+</td>
+<td width="40%">
+<img src="docs/images/demo2.jpg" alt="食材分析例" width="200"/>
+</td>
+</tr>
+</table>
 
-1. ユーザー: 例：「キーマーカレーのレシピを教えて」
-2. ボット:
-   - レシピの提案（材料、作り方）
-   - YouTube の関連動画リンク
-   - アレンジアイデアやヘルシー化のポイント
+### シナリオ 3: レシートからの買い物管理
 
-  <img src="docs/images/demo1.jpeg" alt="レシピ提案例" width="300"/>
+<table>
+<tr>
+<td width="60%">
 
-#### シナリオ 2: 食材画像からのレシピ提案
+1. ユーザーがレシート画像を送信
+2. ボットが画像を分析：
 
-1. ユーザーがある食材の写真を撮影して送信
-2. ボット:
-   - 画像から食材を認識・リスト化
-3. ユーザーから食材等のリクエストがあった場合
-   - レシピの提案（材料、作り方）
-   - YouTube の関連動画リンク
+- 購入食材のリスト化
 
-  <img src="docs/images/demo2.jpeg" alt="食材分析例" width="300"/>
+3. レシピ提案（リクエスト時）：
 
-#### シナリオ 3: レシート画像からの買い物管理
+- 材料と作り方
+- 関連動画リンク
 
-1. ユーザーがスーパーのレシート画像を送信
-2. ボット:
-   - 購入した食材をリスト化
-3. ユーザーから食材等のリクエストがあった場合
-   - レシピの提案（材料、作り方）
-   - YouTube の関連動画リンク
-
-  <img src="docs/images/demo3.jpeg" alt="レシート画像のケース" width="300"/>
+</td>
+<td width="40%">
+<img src="docs/images/demo3.jpg" alt="レシート画像のケース" width="200"/>
+</td>
+</tr>
+</table>
 
 ## 今後の機能拡張について
 
