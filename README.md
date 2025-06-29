@@ -132,18 +132,14 @@ sequenceDiagram
     else 画像メッセージの場合
         ルートエージェント->>画像分析マネージャー: 画像分析依頼
         画像分析マネージャー->>画像分析マネージャー: 食材抽出
-        画像分析マネージャー->>レシピマネージャー: 抽出食材でレシピ生成依頼
-        レシピマネージャー->>YouTubeツール: 関連レシピ検索
-        レシピマネージャー->>Googleツール: 情報検索
-        レシピマネージャー->>画像分析マネージャー: レシピ情報
-        画像分析マネージャー->>ルートエージェント: レシピ情報
+        画像分析マネージャー->>ルートエージェント: 食材のリスト情報
     end
 
     ルートエージェント->>レスポンスマネージャー: レスポンス生成依頼
     レスポンスマネージャー->>ルートエージェント: 整形済みレスポンス
-    ルートエージェント->>FastAPIサーバー: 最終レスポンス
+    ルートエージェント->>FastAPIサーバー: 一時的なレスポンス / 最終レスポンス
     FastAPIサーバー->>LINEプラットフォーム: レスポンス送信
-    LINEプラットフォーム->>ユーザー: レシピ返信
+    LINEプラットフォーム->>ユーザー: レシピ または 画像分析結果 または 一時的な回答
 ```
 
 ## セットアップ手順
@@ -207,10 +203,10 @@ pip install -r requirements.txt
 
 | 変数名                        | 必須 | 説明                                                            |
 | ----------------------------- | ---- | --------------------------------------------------------------- |
-| `DB_USER`                     | ✓    | データベース接続用のユーザー名。                                |
-| `DB_PASS`                     | ✓    | データベース接続用のパスワード。                                |
-| `DB_NAME`                     | ✓    | 接続先のデータベース名。                                        |
-| `DB_INSTANCE_CONNECTION_NAME` | ✓    | Cloud SQL 接続名。形式: `[PROJECT_ID]:[REGION]:[INSTANCE_NAME]` |
+| `DB_USER`                     | -    | データベース接続用のユーザー名。                                |
+| `DB_PASS`                     | -    | データベース接続用のパスワード。                                |
+| `DB_NAME`                     | -    | 接続先のデータベース名。                                        |
+| `DB_INSTANCE_CONNECTION_NAME` | -    | Cloud SQL 接続名。形式: `[PROJECT_ID]:[REGION]:[INSTANCE_NAME]` |
 
 ### ステップバイステップ・セットアップ
 
@@ -226,7 +222,6 @@ cd zenn-ai-hackathon
 ```bash
 python3 -m venv venv
 source venv/bin/activate  # Linuxの場合
-# または
 .\venv\Scripts\activate   # Windowsの場合
 ```
 
@@ -261,11 +256,11 @@ graph TD
     D -->|Delegation| E[Recipe Manager]
     D -->|Image Analysis| F[Image Analysis Manager]
     D -->|Response Generation| G[Response Manager]
-    E -->|YouTube Search| H[YouTube Search Tool]
-    E -->|Google Search| I[Google Search Tool]
-    F -->|OCR & Analysis| J[Vision API]
-    F -->|Recipe Request| E
-    G -->|Format Response| K[LINE Message Formatter]
+    E -->|YouTube Search| H[YouTube Search Agent]
+    E -->|Google Search| I[Google Search Agent]
+    G -->|Format Response| K[LINE Response Agent]
+    H -->|Youtube Search| N[YouTube API]
+    I -->|Google Search| J[Google]
     K -->|Send Message| L[LINE Messaging API]
     L -->|Display| M[User's LINE App]
 ```
@@ -302,13 +297,13 @@ graph TD
 
 #### シナリオ 1: テキスト入力からのレシピ提案
 
-1. ユーザー: 例：「今日の夕食におすすめの簡単な魚料理を教えて」
+1. ユーザー: 例：「キーマーカレーのレシピを教えて」
 2. ボット:
    - レシピの提案（材料、作り方）
    - YouTube の関連動画リンク
    - アレンジアイデアやヘルシー化のポイント
 
-<img src="docs/images/demo1.jpeg" alt="レシピ提案例" width="300"/>
+  <img src="docs/images/demo1.jpeg" alt="レシピ提案例" width="300"/>
 
 #### シナリオ 2: 食材画像からのレシピ提案
 
@@ -318,7 +313,8 @@ graph TD
 3. ユーザーから食材等のリクエストがあった場合
    - レシピの提案（材料、作り方）
    - YouTube の関連動画リンク
-     <img src="docs/images/demo2.jpeg" alt="食材分析例" width="300"/>
+
+  <img src="docs/images/demo2.jpeg" alt="食材分析例" width="300"/>
 
 #### シナリオ 3: レシート画像からの買い物管理
 
@@ -329,7 +325,7 @@ graph TD
    - レシピの提案（材料、作り方）
    - YouTube の関連動画リンク
 
-<img src="docs/images/demo3.jpeg" alt="レシート画像のケース" width="300"/>
+  <img src="docs/images/demo3.jpeg" alt="レシート画像のケース" width="300"/>
 
 ## 今後の機能拡張について
 
