@@ -26,43 +26,43 @@
 
 ## システム構成図
 
-<img src="ハッカソン.drawio.svg" alt="システム構成図" width="700"/>
+<img src="docs/images/system_diagram.drawio.svg" alt="システム構成図" width="800"/>
 
 ## シーケンス図（マルチエージェントフロー）
 
 ```mermaid
 sequenceDiagram
     participant ユーザー
-    participant LINEプラットフォーム
-    participant FastAPIサーバー
-    participant ルートエージェント
-    participant レシピマネージャー
-    participant 画像分析マネージャー
-    participant レスポンスマネージャー
-    participant YouTubeツール
-    participant Googleツール
+    participant LINE Platform
+    participant FastAPI App
+    participant Root Agent
+    participant Recipe Agent
+    participant Image Analysis Agent
+    participant Response Agent
+    participant YouTube Agent
+    participant Google Agent
 
-    ユーザー->>LINEプラットフォーム: メッセージ送信(テキスト/画像)
-    LINEプラットフォーム->>FastAPIサーバー: Webhookイベント
-    FastAPIサーバー->>ルートエージェント: メッセージ処理依頼
-    ルートエージェント->>ルートエージェント: メッセージ内容分析
+    ユーザー->>LINE Platform: メッセージ送信(テキスト/画像)
+    LINE Platform->>FastAPI App: Webhookイベント
+    FastAPI App->>Root Agent: メッセージ処理依頼
+    Root Agent->>Root Agent: メッセージ内容分析
 
     alt テキストメッセージの場合
-        ルートエージェント->>レシピマネージャー: レシピ生成依頼
-        レシピマネージャー->>YouTubeツール: 関連レシピ検索
-        レシピマネージャー->>Googleツール: 情報検索
-        レシピマネージャー->>ルートエージェント: レシピ情報
+        Root Agent->>Recipe Agent: レシピ生成依頼
+        Recipe Agent->>YouTube Agent: 関連レシピ検索
+        Recipe Agent->>Google Agent: 情報検索
+        Recipe Agent->>Root Agent: レシピ情報
     else 画像メッセージの場合
-        ルートエージェント->>画像分析マネージャー: 画像分析依頼
-        画像分析マネージャー->>画像分析マネージャー: 食材抽出
-        画像分析マネージャー->>ルートエージェント: 食材のリスト情報
+        Root Agent->>Image Analysis Agent: 画像分析依頼
+        Image Analysis Agent->>Image Analysis Agent: 食材抽出
+        Image Analysis Agent->>Root Agent: 食材のリスト情報
     end
 
-    ルートエージェント->>レスポンスマネージャー: レスポンス生成依頼
-    レスポンスマネージャー->>ルートエージェント: 整形済みレスポンス
-    ルートエージェント->>FastAPIサーバー: 一時的なレスポンス / 最終レスポンス
-    FastAPIサーバー->>LINEプラットフォーム: レスポンス送信
-    LINEプラットフォーム->>ユーザー: レシピ または 画像分析結果 または 一時的な回答
+    Root Agent->>Response Agent: レスポンス生成依頼
+    Response Agent->>Root Agent: 整形済みレスポンス
+    Root Agent->>FastAPI App: 一時的なレスポンス / 最終レスポンス
+    FastAPI App->>LINE Platform: レスポンス送信
+    LINE Platform->>ユーザー: レシピ または 画像分析結果 または 一時的な回答
 ```
 
 ## システムアーキテクチャ詳細
@@ -74,14 +74,14 @@ graph TD
     A[LINE Platform] -->|Webhook Events| B[FastAPI App]
     B -->|Session| C[Agent Service]
     C -->|Task| D[Root Agent]
-    D -->|Delegation| E[Recipe Manager]
-    D -->|Image Analysis| F[Image Analysis Manager]
-    D -->|Response Generation| G[Response Manager]
+    D -->|Delegation| E[Recipe Agent]
+    D -->|Image Analysis| F[Image Analysis Agent]
+    D -->|Response Generation| G[Response Agent]
     E -->|YouTube Search| H[YouTube Search Agent]
     E -->|Google Search| I[Google Search Agent]
     G -->|Format Response| K[LINE Response Agent]
     H -->|Youtube Search| N[YouTube API]
-    I -->|Google Search| J[Google]
+    I -->|Google Search| J[Google Search]
     K -->|Send Message| L[LINE Messaging API]
     L -->|Display| M[User's LINE App]
 ```
@@ -93,10 +93,10 @@ graph TD
 3. FastAPI アプリはイベントを Agent Service に転送
 4. Agent Service はセッションを作成し、Root エージェントにタスクを委任
 5. Root エージェントはメッセージ内容を分析し、適切なサブエージェントに処理を振り分け
-   - テキストメッセージ → Recipe Manager
-   - 画像メッセージ → Image Analysis Manager
+   - テキストメッセージ → Recipe Agent
+   - 画像メッセージ → Image Analysis Agent
 6. 各サブエージェントは専用ツールを使用して情報収集
-7. Response Manager が最終的な応答を整形
+7. Response Agent が最終的な応答を整形
 8. LINE Messaging API を通じてユーザーに応答を送信
 
 ### モデルアーキテクチャ
@@ -275,6 +275,13 @@ uvicorn main:app --reload --port 8080
 ```
 
 ## シナリオと表示例
+
+このプロジェクトでは、以下のシナリオを想定しています。
+
+### 前提条件
+
+- ユーザーは LINE アカウントを持っていること。
+- LINE レシピ Bot のチャンネルを友達追加していること。
 
 ### シナリオ 1: テキストからのレシピ提案
 
